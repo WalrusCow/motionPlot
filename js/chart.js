@@ -144,10 +144,17 @@ var Chart = function(chartParent, options) {
     this.showData();
   };
 
+  // Show the data for the previous z index
+  chart.showPrevData = function() {
+    // Previous index
+    this.incrementIndex(-1);
+    this.showData();
+  };
+
   // Increment the index and change slider value
   chart.incrementIndex = function(n) {
     this.zIndex += n * this.zStep;
-    if(this.zIndex > this.zMax) {
+    if(this.zIndex > this.zMax || this.zIndex < this.zMin) {
       this.zIndex -= n * this.zStep;
       return;
     }
@@ -179,6 +186,14 @@ var Chart = function(chartParent, options) {
       // Register listener for click
       this.nextButton.click(function(e) {
         self.showNextData();
+      });
+    }
+
+    // Initialize prev button
+    if(this.prevButton) {
+      // Register listener for click
+      this.prevButton.click(function(e) {
+        self.showPrevData();
       });
     }
   };
@@ -246,10 +261,12 @@ var Chart = function(chartParent, options) {
 
     // Beginning coordinates for both axes
     var axisStart = { x : this.axesWidth.y, y : canvasHeight - this.axesWidth.x };
+
     // Draw the x axis
     var axisEnd = { x : canvasWidth, y : axisStart.y };
     util.line(ctx, axisStart, axisEnd);
 
+    // Draw ticks for the x axis
     util.drawTicks(ctx, this.ticks.x, axisStart, axisEnd, this.xMin, this.xMax, 'x', 1);
 
     // Draw the y axis
@@ -258,7 +275,6 @@ var Chart = function(chartParent, options) {
 
     // Draw ticks for the y axis
     util.drawTicks(ctx, this.ticks.y, axisEnd, axisStart, this.yMin, this.yMax, 'y', -1);
-    // TODO
 
     // TODO : Add labels, scale info
   };
@@ -278,6 +294,11 @@ var Chart = function(chartParent, options) {
   // Button to go to next z index
   chart.registerNextBtn = function(btn) {
     this.nextButton = $(btn);
+  };
+
+  // Button to go to previous z index
+  chart.registerPrevBtn = function(btn) {
+    this.prevButton = $(btn);
   };
 
   // Register a slider to use to select the z indices

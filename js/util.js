@@ -111,6 +111,14 @@ var util = function() {
     ctx.stroke();
   }
 
+  // Render given text on the canvas at the given point
+  function text(ctx, text, pt, opt) {
+    ctx.font = opt.font;
+    ctx.textAlign = opt.textAlign;
+    ctx.textBaseline = opt.textBaseline || "middle";
+    ctx.fillText(text, pt.x, pt.y);
+  }
+
   // Initialize a canvas with a given id
   function initCanvas(chart, chartParent, options, id) {
     var newCanvas = $('<canvas/>', { id : id, class : 'mp_chart' });
@@ -146,15 +154,34 @@ var util = function() {
 
   // Draw ticks
   function drawTicks(ctx, tickConfig, axisStart, axisEnd, min, max, axis, one) {
+    // Magical constants for text offset (not sure we need this)
+    var TEXT_OFFSET_Y = 5;
+    var TEXT_OFFSET_X = 10;
+
     // Line boundaries
     var lineStart = { x : axisStart.x, y : axisEnd.y };
     var lineEnd = { x : axisStart.x, y : axisEnd.y };
     var numTicks = (max - min) / tickConfig.minor.frequency;
+
     // Pixels per tick
     var pxPerTick = (axisEnd[axis] - axisStart[axis]) / numTicks;
     var thisTick;
-    var opt = {};
+
+    // Axis we are not drawing
     var otherAxis = (axis === 'x') ? 'y' : 'x';
+
+    // Position to place the text at
+    var textAnchor = { x : lineEnd.x, y : lineEnd.y };
+    var textOffset = (axis === 'x') ? TEXT_OFFSET_X : TEXT_OFFSET_Y;
+    // Text should be offset to not touch ticks
+    textAnchor[otherAxis] +=  10 * one;
+    var textFormat = {
+      font : '10px sans-serif',
+      textAlign : (axis === 'x') ? 'center' : 'right',
+      textBaseline : (axis === 'x') ? 'top' : null
+    };
+    var textVal;
+
     for(var i = 0; i < numTicks; ++i) {
       thisTick = (i % tickConfig.major.frequency) ? tickConfig.minor : tickConfig.major;
 
@@ -163,6 +190,16 @@ var util = function() {
       console.log(lineStart, lineEnd);
       // Draw the line
       line(ctx, lineStart, lineEnd, { width : thisTick.width });
+
+      // Add labels for major ticks
+      if(thisTick === tickConfig.major) {
+        // Value of current tick
+        textVal = tickConfig.minor.frequency * i + min;
+        textAnchor[axis] = lineEnd[axis];
+
+        text(ctx, textVal, textAnchor, textFormat);
+      }
+
       // Move the line
       lineStart[axis] += one * pxPerTick;
       lineEnd[axis] = lineStart[axis];
