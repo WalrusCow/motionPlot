@@ -187,7 +187,6 @@ var util = function() {
 
       // Add or subtract as appropriate
       lineEnd[otherAxis] = lineStart[otherAxis] + one * thisTick.length;
-      console.log(lineStart, lineEnd);
       // Draw the line
       line(ctx, lineStart, lineEnd, { width : thisTick.width });
 

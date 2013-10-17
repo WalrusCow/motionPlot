@@ -140,15 +140,23 @@ var Chart = function(chartParent, options) {
   // Show the data for the next z index
   chart.showNextData = function () {
     // Next index
-    this.incrementIndex(1);
-    this.showData();
+    if(this.incrementIndex(1)) {
+      this.showData();
+      return true;
+    } else {
+      return false;
+    }
   };
 
   // Show the data for the previous z index
   chart.showPrevData = function() {
     // Previous index
-    this.incrementIndex(-1);
-    this.showData();
+    if(this.incrementIndex(-1)) {
+      this.showData();
+      return true;
+    } else {
+      return false;
+    }
   };
 
   // Increment the index and change slider value
@@ -156,9 +164,10 @@ var Chart = function(chartParent, options) {
     this.zIndex += n * this.zStep;
     if(this.zIndex > this.zMax || this.zIndex < this.zMin) {
       this.zIndex -= n * this.zStep;
-      return;
+      return false;
     }
     this.slider.val(this.zIndex);
+    return true;
   };
 
   // Initialize the slider
@@ -194,6 +203,14 @@ var Chart = function(chartParent, options) {
       // Register listener for click
       this.prevButton.click(function(e) {
         self.showPrevData();
+      });
+    }
+
+    // Initialize play button
+    if(this.playButton) {
+      // Register listener for click
+      this.playButton.click(function(e) {
+        self.play();
       });
     }
   };
@@ -305,6 +322,25 @@ var Chart = function(chartParent, options) {
   // We like jQuery
   chart.registerSlider = function(slider) {
     this.slider = $(slider);
+  };
+
+  chart.registerPlayBtn = function(btn) {
+    this.playButton = $(btn);
+  };
+
+  // Play the animation from now until the end
+  chart.play = function() {
+    if (this.playInterval) {
+      window.clearInterval(this.playInterval);
+      this.playInterval = null;
+    } else {
+      var self = this;
+      this.playInterval = window.setInterval(function() {
+        console.log('hi');
+        // Stop playing if there is no more data
+        if(!self.showNextData()) self.play();
+      }, 500);
+    }
   };
 
   return chart;
