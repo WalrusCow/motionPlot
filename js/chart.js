@@ -278,6 +278,14 @@ var Chart = function(chartParent, options) {
     var canvasHeight = this.axesLayer.height;
     var canvasWidth = this.axesLayer.width;
 
+    // Format for the labels
+    var labelFormat = {
+      font : 'bold 16px sans-serif',
+      textAlign : 'center',
+      textBaseline : 'bottom'
+    };
+
+
     // Beginning coordinates for both axes
     var axisStart = { x : this.axesWidth.y, y : canvasHeight - this.axesWidth.x };
 
@@ -288,6 +296,14 @@ var Chart = function(chartParent, options) {
     // Draw ticks for the x axis
     util.drawTicks(ctx, this.ticks.x, axisStart, axisEnd, this.xMin, this.xMax, 'x', 1);
 
+    // Label halfway down the axis
+    var labelPt = {
+      x : axisStart.x + (axisEnd.x - axisStart.x) / 2,
+      y : canvasHeight
+    };
+    // Label the x axis
+    util.text(ctx, this.axesLabels.x, labelPt, labelFormat);
+
     // Draw the y axis
     axisEnd = { x : axisStart.x, y : 0 }
     util.line(ctx, axisStart, axisEnd);
@@ -295,21 +311,21 @@ var Chart = function(chartParent, options) {
     // Draw ticks for the y axis
     util.drawTicks(ctx, this.ticks.y, axisEnd, axisStart, this.yMin, this.yMax, 'y', -1);
 
-    // Add labels
-    var labelFormat = {
-      font : 'bold 16px sans-serif',
-      textAlign : 'center',
-      textBaseline : 'bottom'
+    // Label halfway down the axis. Give enough x height for the label to show
+    labelPt = {
+      x : 20,
+      y : axisStart.y - (axisStart.y - axisEnd.y) / 2
     };
 
-    // Save context (we must rotate it to write the y-axis label)
     ctx.save();
+    // Translate to where we want to put the label and turn PI/2
+    // radians CCW (it's backwards from normal space; positive is CW)
+    ctx.translate(labelPt.x, labelPt.y);
     ctx.rotate(-Math.PI / 2);
-    util.text(ctx, this.axesLabels.y, { x : -150, y : 20 }, labelFormat);
-    // Un-rotate the context
-    ctx.restore();
 
-    util.text(ctx, this.axesLabels.x, { x : 300, y : 350 }, labelFormat);
+    // Label the y axis
+    util.text(ctx, this.axesLabels.y, { x : 0, y : 0 }, labelFormat);
+    ctx.restore();
 
   };
 
