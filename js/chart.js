@@ -18,13 +18,14 @@ var Chart = function(chartParent, options) {
   // Return object
   var chart = {};
 
-  // Constants used for various things
+  // IDs to use for the canvases
   var BG_ID = 'mp_bg';
   var AXES_ID = 'mp_axes';
   var CONTENT_ID = 'mp_content';
 
   // Deal with default options
   options = options || {};
+  // TODO Get this from the canvas when we register it
   options.width = options.width || 600;
   options.height = options.height || 350;
 
@@ -43,40 +44,25 @@ var Chart = function(chartParent, options) {
   chart.axes = { x : 'x', y : 'y', z : 'z' };
   chart.groupBy = 'id';
 
-  // Set up default ticks
+  // Configuration for the ticks of the axes
   // Length and width are in pixels; frequency in units
-  // Major frequency is in ticks
+  // Major frequency is how many minor ticks in between major ones
   chart.ticks = {
     x : {
-      major : {
-        frequency : 4,
-        length : 8,
-        width : 2
-      },
-      minor : {
-        frequency : 1,
-        length : 4,
-        width : 1
-      }
+      major : { frequency : 4, length : 8, width : 2 },
+      minor : { frequency : 1, length : 4, width : 1 }
     },
     y : {
-      major : {
-        frequency : 4,
-        length : 8,
-        width : 2
-      },
-      minor : {
-        frequency : 1,
-        length : 4,
-        width : 1
-      }
+      major : { frequency : 4, length : 8, width : 2 },
+      minor : { frequency : 1, length : 4, width : 1 }
     }
   };
 
   // Default z step size
   chart.zStep = 1;
-  chart.axesWidth = { x : 40, y : 50 };
 
+  // Default axes settings
+  chart.axesWidth = { x : 40, y : 50 };
   chart.axesLabels = { x : 'Horizontal Axis', y : 'Vertical Axis' };
 
   // Make the canvases (TODO : Remove this and just register canvas)
@@ -86,42 +72,41 @@ var Chart = function(chartParent, options) {
 
   // Add a data point to the data set
   chart.addData = function(data) {
-    if($.isArray(data)) {
-      for(var i = 0; i < data.length; ++i) {
+    if ($.isArray(data)) {
+      for (var i = 0; i < data.length; ++i) {
         this.addData(data[i]);
       }
     } else {
       // Push appropriately
       var id = data[this.groupBy];
-      if(!this.data[id]) {
-        this.data[id] = [];
-      }
+      this.data[id] = this.data[id] || [];
       this.data[id].push(data);
     }
   };
 
   // Initialize the data for use in the chart
   chart.initData = function() {
-    var self = this;
-    var dataList;
     // Reset boundaries
     this.zMin = 0;
     this.zMax = 0;
 
-    // Sort all data points
-    for(var id in this.data) {
-      dataList = this.data[id];
+    // Shorthand
+    var zAxis = this.axes.z;
+
+    // Sort all data points by z axis
+    for (var id in this.data) {
+      var dataList = this.data[id];
       dataList.sort(function(a, b) {
-        return a[self.axes.z] - b[self.axes.z];
+        return a[zAxis] - b[zAxis];
       });
 
       // Set min & max z values
-      this.zMin = Math.min(this.zMin, dataList[0][this.axes.z]);
-      this.zMax = Math.max(this.zMax, dataList[dataList.length - 1][this.axes.z]);
+      this.zMin = Math.min(this.zMin, dataList[0][zAxis]);
+      this.zMax = Math.max(this.zMax, dataList[dataList.length - 1][zAxis]);
     }
 
-    // Interpolate missing data points
-    for(var id in this.data) {
+    // Interpolate missing data points TODO
+    for (var id in this.data) {
       util.interpolateData(this.data[id], this.zMin, this.zMax);
     }
 
@@ -131,7 +116,7 @@ var Chart = function(chartParent, options) {
     // Generate and assign unique colours to IDs
     var colours = util.uniqueColours(Object.keys(this.data).length);
     var i = 0;
-    for(var id in this.data) {
+    for (var id in this.data) {
       this.colours[id] = colours[i];
       i += 1;
     }
@@ -142,29 +127,20 @@ var Chart = function(chartParent, options) {
   // Show the data for the next z index
   chart.showNextData = function () {
     // Next index
-    if(this.incrementIndex(1)) {
-      this.showData();
-      return true;
-    } else {
-      return false;
-    }
+    return this.incrementIndex(1) ? this.showData() || true : false;
   };
 
   // Show the data for the previous z index
   chart.showPrevData = function() {
     // Previous index
-    if(this.incrementIndex(-1)) {
-      this.showData();
-      return true;
-    } else {
-      return false;
-    }
+    return this.incrementIndex(-1) ? this.showData() || true : false;
   };
 
   // Increment the index and change slider value
+  // Return false if the value was not actually changed
   chart.incrementIndex = function(n) {
     this.zIndex += n * this.zStep;
-    if(this.zIndex > this.zMax || this.zIndex < this.zMin) {
+    if (this.zIndex > this.zMax || this.zIndex < this.zMin) {
       this.zIndex -= n * this.zStep;
       return false;
     }
@@ -192,29 +168,21 @@ var Chart = function(chartParent, options) {
       });
     }
 
-    // Initialize next button
-    if(this.nextButton) {
-      // Register listener for click
-      this.nextButton.click(function(e) {
-        self.showNextData();
-      });
-    }
+    var clickButtons = [
+      { btn : this.nextButton, action : this.showNextData },
+      { btn : this.prevButton, action : this.showPrevData },
+      { btn : this.playButton, action : this.play }
+    ];
 
-    // Initialize prev button
-    if(this.prevButton) {
-      // Register listener for click
-      this.prevButton.click(function(e) {
-        self.showPrevData();
-      });
-    }
+    // Initialize clickers for each button
+    $.each(clickButtons, function(index, item) {
+      if (item.btn) {
+        item.btn.click(function(e) {
+          item.action.call(self);
+        });
+      }
+    });
 
-    // Initialize play button
-    if(this.playButton) {
-      // Register listener for click
-      this.playButton.click(function(e) {
-        self.play();
-      });
-    }
   };
 
   // Initially render the chart
@@ -241,21 +209,16 @@ var Chart = function(chartParent, options) {
     var cvs = this.contentLayer;
     var ctx = cvs.getContext('2d');
 
-
     // Find the offset in pixels that this value should have
     function computeOffset(minVal, maxVal, px, val) {
       var pxPerUnit = px / (maxVal - minVal);
       return pxPerUnit * (val - minVal);
     }
 
-    var px;
-    var fill;
-    var opt;
-
-    for(var id in this.data) {
+    for (var id in this.data) {
       dataPoint = this.data[id][this.zIndex];
 
-      px = cvs.width - this.axesWidth.y;
+      var px = cvs.width - this.axesWidth.y;
       // Offsets in pixels from the axes
       xOffset = computeOffset(this.xMin, this.xMax, px, dataPoint[this.axes.x]);
       px = cvs.height - this.axesWidth.x
@@ -264,8 +227,8 @@ var Chart = function(chartParent, options) {
       // Coordinates to display this point at
       coords = { x : xOffset + this.axesWidth.y, y : px - yOffset };
       // Get colour for this id
-      fill = util.rgbToString(this.colours[id]);
-      opt = { fill : fill };
+      var fill = util.rgbToString(this.colours[id]);
+      var opt = { fill : fill };
       // TODO : Use other options?
       util.circle(ctx, coords, opt);
     }
@@ -284,7 +247,6 @@ var Chart = function(chartParent, options) {
       textAlign : 'center',
       textBaseline : 'bottom'
     };
-
 
     // Beginning coordinates for both axes
     var axisStart = { x : this.axesWidth.y, y : canvasHeight - this.axesWidth.x };
@@ -330,9 +292,7 @@ var Chart = function(chartParent, options) {
   };
 
   // Clear all canvases
-  chart.clearAll = function() {
-    util.clearCanvas(this.allLayers);
-  };
+  chart.clearAll = function() { util.clearCanvas(this.allLayers); };
 
   // Render the background (TODO : fancify ?)
   chart.showBackground = function() {
@@ -341,36 +301,27 @@ var Chart = function(chartParent, options) {
     ctx.fillRect(0, 0, this.bgLayer.width, this.bgLayer.height);
   };
 
-  // Button to go to next z index
-  chart.registerNextBtn = function(btn) {
-    this.nextButton = $(btn);
-  };
+  // Buttons to go to next/prev z index
+  chart.registerNextBtn = function(btn) { this.nextButton = $(btn); };
+  chart.registerPrevBtn = function(btn) { this.prevButton = $(btn); };
 
-  // Button to go to previous z index
-  chart.registerPrevBtn = function(btn) {
-    this.prevButton = $(btn);
-  };
+  // Slider to use to select the z index
+  chart.registerSlider = function(slider) { this.slider = $(slider); };
 
-  // Register a slider to use to select the z indices
-  chart.registerSlider = function(slider) {
-    this.slider = $(slider);
-  };
+  // Button to automatically loop through z index
+  chart.registerPlayBtn = function(btn) { this.playButton = $(btn); };
 
-  chart.registerPlayBtn = function(btn) {
-    this.playButton = $(btn);
-  };
-
-  // Play the animation from now until the end
+  // Play the animation from now until the end.
+  // Pause if currently playing
   chart.play = function() {
-    if (this.playInterval) {
+    if (this.playInterval) { // Pause
       window.clearInterval(this.playInterval);
       this.playInterval = null;
-    } else {
+    } else { // Play
       var self = this;
       this.playInterval = window.setInterval(function() {
-        console.log('hi');
         // Stop playing if there is no more data
-        if(!self.showNextData()) self.play();
+        if (!self.showNextData()) self.play();
       }, 500);
     }
   };
