@@ -113,9 +113,10 @@ var util = function() {
 
   // Render given text on the canvas at the given point
   function text(ctx, text, pt, opt) {
+    opt = opt || {};
     ctx.font = opt.font;
     ctx.textAlign = opt.textAlign;
-    ctx.textBaseline = opt.textBaseline || "middle";
+    ctx.textBaseline = opt.textBaseline || 'middle';
     ctx.fillText(text, pt.x, pt.y);
   }
 
@@ -213,6 +214,7 @@ var util = function() {
     interpolateData : interpolateData,
     initCanvas : initCanvas,
     circle : circle,
+    text : text,
     line : line,
     rgbToString : rgbToString,
     uniqueColours : uniqueColours

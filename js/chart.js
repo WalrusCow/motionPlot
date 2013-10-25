@@ -75,7 +75,9 @@ var Chart = function(chartParent, options) {
 
   // Default z step size
   chart.zStep = 1;
-  chart.axesWidth = { x : 40, y : 40 };
+  chart.axesWidth = { x : 40, y : 50 };
+
+  chart.axesLabels = { x : 'Horizontal Axis', y : 'Vertical Axis' };
 
   // Make the canvases (TODO : Remove this and just register canvas)
   chart.bgLayer = util.initCanvas(chart, chartParent, options, BG_ID);
@@ -260,7 +262,7 @@ var Chart = function(chartParent, options) {
       yOffset = computeOffset(this.yMin, this.yMax, px, dataPoint[this.axes.y]);
 
       // Coordinates to display this point at
-      coords = { x : xOffset + this.axesWidth.x, y : px - yOffset };
+      coords = { x : xOffset + this.axesWidth.y, y : px - yOffset };
       // Get colour for this id
       fill = util.rgbToString(this.colours[id]);
       opt = { fill : fill };
@@ -293,7 +295,22 @@ var Chart = function(chartParent, options) {
     // Draw ticks for the y axis
     util.drawTicks(ctx, this.ticks.y, axisEnd, axisStart, this.yMin, this.yMax, 'y', -1);
 
-    // TODO : Add labels, scale info
+    // Add labels
+    var labelFormat = {
+      font : 'bold 16px sans-serif',
+      textAlign : 'center',
+      textBaseline : 'bottom'
+    };
+
+    // Save context (we must rotate it to write the y-axis label)
+    ctx.save();
+    ctx.rotate(-Math.PI / 2);
+    util.text(ctx, this.axesLabels.y, { x : -150, y : 20 }, labelFormat);
+    // Un-rotate the context
+    ctx.restore();
+
+    util.text(ctx, this.axesLabels.x, { x : 300, y : 350 }, labelFormat);
+
   };
 
   // Clear all canvases
@@ -319,7 +336,6 @@ var Chart = function(chartParent, options) {
   };
 
   // Register a slider to use to select the z indices
-  // We like jQuery
   chart.registerSlider = function(slider) {
     this.slider = $(slider);
   };
